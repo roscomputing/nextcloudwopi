@@ -1,0 +1,15 @@
+{
+    "name": "Wopi",
+    "description": "Microsoft office online integration",
+    "type": "project",
+    "license": "AGPL",
+    "authors": [
+        {
+            "name": "Klonni"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^5.4"
+    }
+}
