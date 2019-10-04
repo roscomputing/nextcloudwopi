@@ -5,7 +5,7 @@
     <name>Wopi</name>
     <summary>Microsoft office online integration</summary>
     <description><![CDATA[Office file editing]]></description>
-    <version>0.0.1</version>
+    <version>0.1.1</version>
     <licence>agpl</licence>
     <author mail="klonishe@gmail.com" homepage="https://github.com/roscomputing">Klonni</author>
     <namespace>Wopi</namespace>

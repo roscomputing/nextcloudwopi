@@ -1,6 +1,7 @@
 <?php
 script('wopi', 'script');
 style('wopi', 'style');
+
 ?>
 
 <div id="app">

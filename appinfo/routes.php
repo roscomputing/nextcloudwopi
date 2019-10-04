@@ -10,6 +10,8 @@
 return [
     'routes' => [
 	   ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
-	   ['name' => 'page#do_echo', 'url' => '/echo', 'verb' => 'POST'],
+       ['name' => 'page#editor', 'url' => '/editor', 'verb' => 'POST'],
+       ['name' => 'file#getinfo', 'url' => '/files/{id}', 'verb' => 'GET'],
+       ['name' => 'file#get', 'url' => '/files/{id}/contents', 'verb' => 'GET'],
     ]
 ];
