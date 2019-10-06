@@ -18,8 +18,6 @@ class WopiTokenMapper extends QBMapper {
 	/**
 	 * @param string $value
 	 * @return WopiToken
-	 * @throws DoesNotExistException if not found
-	 * @throws MultipleObjectsReturnedException if more than one result
 	 */
 	public function find(string $value) {
 		$qb = $this->db->getQueryBuilder();
@@ -29,8 +27,9 @@ class WopiTokenMapper extends QBMapper {
 			->where(
 				$qb->expr()->eq('value', $qb->createNamedParameter($value, IQueryBuilder::PARAM_STR))
 			);
-
-		return $this->findEntity($qb);
+		$items = $this->findEntities($qb);
+		$result = array_shift($items);
+		return $result;
 	}
 
 
@@ -39,7 +38,7 @@ class WopiTokenMapper extends QBMapper {
 
 		$qb->select('*')
 			->from('wopi_tokens')
-			->where($qb->expr()->lt('validBy', $qb->createNamedParameter($validBy, IQueryBuilder::PARAM_INT)))
+			->where($qb->expr()->lt('valid_by', $qb->createNamedParameter($validBy, IQueryBuilder::PARAM_INT)))
 			->setMaxResults($limit)
 			->setFirstResult($offset);
 

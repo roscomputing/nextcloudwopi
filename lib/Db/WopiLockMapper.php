@@ -2,11 +2,9 @@
 
 namespace OCA\Wopi\Db;
 
-use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Db\Entity;
-use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
 
 class WopiLockMapper extends QBMapper {
 
@@ -17,8 +15,6 @@ class WopiLockMapper extends QBMapper {
 	/**
 	 * @param int $fileId
 	 * @return WopiLock
-	 * @throws DoesNotExistException if not found
-	 * @throws MultipleObjectsReturnedException if more than one result
 	 */
 	public function find(int $fileId) {
 		$qb = $this->db->getQueryBuilder();
@@ -26,10 +22,11 @@ class WopiLockMapper extends QBMapper {
 		$qb->select('*')
 			->from('wopi_locks')
 			->where(
-				$qb->expr()->eq('fileId', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT))
+				$qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT))
 			);
-
-		return $this->findEntity($qb);
+		$items = $this->findEntities($qb);
+		$result = array_shift($items);
+		return $result;
 	}
 
 
@@ -44,7 +41,7 @@ class WopiLockMapper extends QBMapper {
 
 		$qb->select('*')
 			->from('wopi_locks')
-			->where($qb->expr()->lt('validBy', $qb->createNamedParameter($validBy, IQueryBuilder::PARAM_INT)))
+			->where($qb->expr()->lt('valid_by', $qb->createNamedParameter($validBy, IQueryBuilder::PARAM_INT)))
 			->setMaxResults($limit)
 			->setFirstResult($offset);
 

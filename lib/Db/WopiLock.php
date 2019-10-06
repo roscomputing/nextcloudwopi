@@ -4,12 +4,21 @@ namespace OCA\Wopi\Db;
 
 use OCP\AppFramework\Db\Entity;
 
+/**
+ * @method getValue()
+ * @method setUserId($userId)
+ * @method setValidBy(float|int $param)
+ * @method setValue(string $lck)
+ * @method setFileId($id)
+ * @method setTokenId(string $getId)
+ */
 class WopiLock extends Entity {
 
 	protected $tokenId;
 	protected $userId;
 	protected $fileId;
 	protected $validBy;
+	protected $value;
 
 	public function __construct() {
 		$this->addType('fileId', 'integer');

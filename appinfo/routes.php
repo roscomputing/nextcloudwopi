@@ -11,7 +11,9 @@ return [
     'routes' => [
 	   ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
        ['name' => 'page#editor', 'url' => '/editor', 'verb' => 'POST'],
-       ['name' => 'file#getinfo', 'url' => '/files/{id}', 'verb' => 'GET'],
-       ['name' => 'file#get', 'url' => '/files/{id}/contents', 'verb' => 'GET'],
+       ['name' => 'file#check_file_info', 'url' => '/files/{id}', 'verb' => 'GET'],
+		['name' => 'file#lock', 'url' => '/files/{id}', 'verb' => 'POST'],
+       ['name' => 'file#get_file', 'url' => '/files/{id}/contents', 'verb' => 'GET'],
+		['name' => 'file#put_file', 'url' => '/files/{id}/contents', 'verb' => 'POST'],
     ]
 ];

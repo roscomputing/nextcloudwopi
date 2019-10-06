@@ -49,6 +49,10 @@ class Version0001Date20191003214420 extends SimpleMigrationStep {
 				'notnull' => true,
 				'length' => 36,
 			]);
+			$table->addColumn('value', 'string', [
+				'notnull' => true,
+				'length' => 1024,
+			]);
 			$table->setPrimaryKey(['id']);
 			$table->addIndex(['valid_by'], 'wopi_locks_valid_by');
 			$table->addUniqueIndex(['file_id'], 'wopi_locks_file_id');
