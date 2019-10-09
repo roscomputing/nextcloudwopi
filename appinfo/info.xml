@@ -13,13 +13,10 @@
     <category>office</category>
     <category>tools</category>
     <bugs>https://github.com/roscomputing/nextcloudwopi/issues</bugs>
+    <types>
+        <filesystem/>
+    </types>
     <dependencies>
         <nextcloud min-version="15" max-version="15"/>
     </dependencies>
-    <navigations>
-        <navigation>
-            <name>Wopi</name>
-            <route>wopi.page.index</route>
-        </navigation>
-    </navigations>
 </info>

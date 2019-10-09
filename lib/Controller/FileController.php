@@ -6,8 +6,10 @@ use OCA\Wopi\Common\Utilities;
 use OCA\Wopi\Db\WopiLock;
 use OCA\Wopi\Db\WopiLockMapper;
 use OCA\Wopi\Db\WopiTokenMapper;
+use OCA\Wopi\Hooks\WopiLockHooks;
 use OCP\AppFramework\Http\FileDisplayResponse;
 use OCP\AppFramework\Http\StreamResponse;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Constants;
 use OCP\Files\File;
 use OCP\Files\GenericFileException;
@@ -40,13 +42,25 @@ class FileController extends Controller {
 	 * @var WopiLockMapper
 	 */
 	private $lockMapper;
+	/**
+	 * @var ITimeFactory
+	 */
+	private $timeFactory;
+	/**
+	 * @var WopiLockHooks
+	 */
+	private $lockHooks;
 
-	public function __construct($AppName, IRequest $request, IRootFolder $rootFolder, IUserManager $userManager, WopiTokenMapper $tokenMapper, WopiLockMapper $lockMapper){
+	public function __construct($AppName, IRequest $request, IRootFolder $rootFolder, IUserManager $userManager,
+								ITimeFactory $timeFactory, WopiTokenMapper $tokenMapper, WopiLockMapper $lockMapper,
+							WopiLockHooks $lockHooks){
 		parent::__construct($AppName, $request);
 		$this->rootFolder = $rootFolder;
 		$this->tokenMapper = $tokenMapper;
 		$this->userManager = $userManager;
 		$this->lockMapper = $lockMapper;
+		$this->timeFactory = $timeFactory;
+		$this->lockHooks = $lockHooks;
 	}
 
 	/**
@@ -84,7 +98,10 @@ class FileController extends Controller {
 			'SupportsUpdate' => $file->isUpdateable(),
 			'UserCanWrite' => ($file->getPermissions() & Constants::PERMISSION_UPDATE) > 0,
 			'SupportsLocks' => true,
-			'UserCanNotWriteRelative' => true];
+			'UserCanNotWriteRelative' => true,
+			'SupportsUserInfo' => false,
+			'SupportsExtendedLockLength' => true,
+			'UserFriendlyName' => $user->getDisplayName()];
 		return new JSONResponse($response);
 	}
 
@@ -176,7 +193,6 @@ class FileController extends Controller {
 							break;
 						}
 						try {
-							$file->unlock(ILockingProvider::LOCK_SHARED);
 							$this->lockMapper->delete($fLock);
 						} catch (LockedException $e) {
 							$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
@@ -206,12 +222,11 @@ class FileController extends Controller {
 					$newLock = new WopiLock();
 					$newLock->setId(Utilities::getGuid());
 					$newLock->setUserId($user->getUID());
-					$newLock->setValidBy(time() + (60*30));
+					$newLock->setValidBy($this->timeFactory->getTime() + (60*30));
 					$newLock->setValue($lck);
 					$newLock->setFileId($id);
 					$newLock->setTokenId($token->getId());
 					try {
-						$file->lock(ILockingProvider::LOCK_SHARED);
 						$this->lockMapper->insert($newLock);
 						$result->setStatus(Http::STATUS_OK);
 					} catch (LockedException $e) {
@@ -234,7 +249,7 @@ class FileController extends Controller {
 						$result->addHeader('X-WOPI-Lock', $fLock->getValue());
 						break;
 					}
-					$fLock->setValidBy(time() + 60*30);
+					$fLock->setValidBy($this->timeFactory->getTime() + 60*30);
 					$this->lockMapper->update($fLock);
 					$result->setStatus(Http::STATUS_OK);
 					break;
@@ -256,7 +271,6 @@ class FileController extends Controller {
 						break;
 					}
 					try {
-						$file->unlock(ILockingProvider::LOCK_SHARED);
 						$this->lockMapper->delete($fLock);
 						$result->setStatus(Http::STATUS_OK);
 					} catch (LockedException $e) {
@@ -335,18 +349,14 @@ class FileController extends Controller {
 
 		if ($result->getStatus() === Http::STATUS_OK)
 		{
-			$t=$this->request->parameters;
-			$content = fopen($this->request->inputStream, 'rb');
+			$this->lockHooks->setLockBypass(true);
+			$content = fopen('php://input', 'rb');
+			//after pull request
+			//$content=$this->request->post;
 			if (empty($content))
-				throw new \Exception();
+				return new DataResponse([], Http::STATUS_INTERNAL_SERVER_ERROR);
 			try {
-				if (!empty($fLock)){
-					$file->unlock(ILockingProvider::LOCK_SHARED);
-				}
 				$file->putContent($content);
-				if (!empty($fLock)){
-					$file->lock(ILockingProvider::LOCK_SHARED);
-				}
 				$result->addHeader('X-WOPI-ItemVersion', $file->getMTime());
 			} catch (GenericFileException $e) {
 				return new DataResponse([], Http::STATUS_INTERNAL_SERVER_ERROR);
@@ -357,7 +367,8 @@ class FileController extends Controller {
 				$result->addHeader('X-WOPI-Lock', '');
 			}
 			finally{
-				fclose($content);
+				if (is_resource($content))
+					fclose($content);
 			}
 		}
 

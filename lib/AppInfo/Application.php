@@ -2,16 +2,15 @@
 
 namespace OCA\Wopi\AppInfo;
 
-use mysql_xdevapi\Exception;
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
-use OCA\Wopi\Db\WopiTokenMapper;
+use OCA\Wopi\Db\WopiLockMapper;
+use OCA\Wopi\Hooks\WopiLockHooks;
 use OCA\Wopi\Listener\LoadAdditionalScripts;
 use OCP\AppFramework\App;
 use OC\AppFramework\Utility\SimpleContainer;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IServerContainer;
-use OCA\Wopi\Controller\FileController;
-use OCA\Wopi\Controller\PageController;
 
 class Application extends App {
 	public function __construct(array $urlParams = array()) {
@@ -20,9 +19,12 @@ class Application extends App {
 		$container = $this->getContainer();
 		/** @var IServerContainer $server */
 		$server = $container->getServer();
-
-
-		/*$container->registerService('WopiTokenMapper', function (SimpleContainer $c) use ($server) {
+		/*$container->registerService('WopiLockHooks', function(SimpleContainer $c) use ($server) {
+			return new WopiLockHooks($server->getRootFolder(),
+			$c->query(ITimeFactory::class),
+			$c->query(WopiLockMapper::class));
+		});
+		$container->registerService('WopiTokenMapper', function (SimpleContainer $c) use ($server) {
 			$t3=$server->getDatabaseConnection();
 			$t4=$server->getDatabaseConnection();
 			$t4=new WopiTokenMapper($server->getDatabaseConnection());
@@ -57,12 +59,14 @@ class Application extends App {
 	}
 
 	public function register(){
-		$server = $this->getContainer()->getServer();
+		$container = $this->getContainer();
+		$server = $container->getServer();
 
 		/** @var IEventDispatcher $dispatcher */
 		$dispatcher = $server->query(IEventDispatcher::class);
 
 		$this->registerSidebarScripts($dispatcher);
+		$container->query(WopiLockHooks::class)->register();
 	}
 
 	protected function registerSidebarScripts(IEventDispatcher $dispatcher) {

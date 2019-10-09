@@ -11,6 +11,7 @@ use OCP\AppFramework\Db\Entity;
  * @method setValue(string $lck)
  * @method setFileId($id)
  * @method setTokenId(string $getId)
+ * @method getValidBy()
  */
 class WopiLock extends Entity {
 
