@@ -5,7 +5,7 @@
     <name>Wopi</name>
     <summary>Microsoft office online integration</summary>
     <description><![CDATA[Office file editing]]></description>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
     <licence>agpl</licence>
     <author mail="klonishe@gmail.com" homepage="https://github.com/roscomputing">Klonni</author>
     <namespace>Wopi</namespace>
@@ -19,4 +19,7 @@
     <dependencies>
         <nextcloud min-version="15" max-version="15"/>
     </dependencies>
+    <settings>
+        <admin>OCA\Wopi\Settings\AdminSettings</admin>
+    </settings>
 </info>

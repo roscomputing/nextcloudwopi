@@ -3,6 +3,8 @@ namespace OCA\Wopi\Controller;
 
 use OCA\Wopi\Db\WopiToken;
 use OCA\Wopi\Db\WopiTokenMapper;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Controller;
@@ -19,13 +21,23 @@ class PageController extends Controller {
 	 * @var WopiTokenMapper
 	 */
 	private $tokenMapper;
+	/**
+	 * @var ITimeFactory
+	 */
+	private $timeFactory;
+	/**
+	 * @var IConfig
+	 */
+	private $config;
 
-	public function __construct($AppName, IRequest $request, $UserId, IURLGenerator $urlGenerator,
-		WopiTokenMapper $tokenMapper){
+	public function __construct($AppName, IRequest $request, $UserId, ITimeFactory $timeFactory, IURLGenerator $urlGenerator,
+		IConfig $config, WopiTokenMapper $tokenMapper){
 		parent::__construct($AppName, $request);
 		$this->userId = $UserId;
 		$this->urlGenerator=$urlGenerator;
 		$this->tokenMapper = $tokenMapper;
+		$this->timeFactory = $timeFactory;
+		$this->config = $config;
 	}
 
 	/**
@@ -39,19 +51,19 @@ class PageController extends Controller {
 	 * @NoAdminRequired
 	 */
 	public function editor($id) {
+		$this->tokenMapper->deleteOld();
 		$route = 'wopi.file.check_file_info';
         $parameters = array('id' => $id);
 		$srcurl = urlencode($this->urlGenerator->linkToRouteAbsolute($route, $parameters));
-
-
 		$token = new WopiToken();
 		$token->setId(Utilities::getGuid());
 		$token->setUserId($this->userId);
-		$token->setValidBy(time() + (60*30));
+		$token->setValidBy($this->timeFactory->getTime()  + (60*30));
 		$token->setValue(Utilities::generateRandomString(64));
 		$token->setFileId($id);
 		$this->tokenMapper->insert($token);
-		$url = 'https://officeserver/we/wordeditorframe.aspx?WOPISrc=' . $srcurl;
+		$serverUrl = rtrim($this->config->getAppValue('wopi', 'serverUrl'), "/");
+		$url = $serverUrl . '/we/wordeditorframe.aspx?WOPISrc=' . $srcurl;
 		$response = new TemplateResponse('wopi', 'editor',array('url' => $url, 'token' => $token->getValue()));  // templates/editor.php
 		$response->addHeader('Cache-Control', 'no-cache, no-store');
 		$response->addHeader('Expires', '-1');

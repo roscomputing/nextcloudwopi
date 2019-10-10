@@ -1,7 +1,7 @@
 <?php
 namespace OCA\Wopi\Controller;
 
-use mysql_xdevapi\Exception;
+use Exception;
 use OCA\Wopi\Common\Utilities;
 use OCA\Wopi\Db\WopiLock;
 use OCA\Wopi\Db\WopiLockMapper;
@@ -13,9 +13,11 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Constants;
 use OCP\Files\File;
 use OCP\Files\GenericFileException;
+use OCP\Files\IAppData;
 use OCP\Files\InvalidPathException;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
+use OCP\ILogger;
 use OCP\IRequest;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
@@ -23,7 +25,6 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\Files\IRootFolder;
 use OCP\AppFramework\Http;
 use OCP\IUserManager;
-use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 
 class FileController extends Controller {
@@ -50,9 +51,17 @@ class FileController extends Controller {
 	 * @var WopiLockHooks
 	 */
 	private $lockHooks;
+	/**
+	 * @var IAppData
+	 */
+	private $appData;
+	/**
+	 * @var ILogger
+	 */
+	private $logger;
 
 	public function __construct($AppName, IRequest $request, IRootFolder $rootFolder, IUserManager $userManager,
-								ITimeFactory $timeFactory, WopiTokenMapper $tokenMapper, WopiLockMapper $lockMapper,
+								ITimeFactory $timeFactory, IAppData $appData, ILogger $logger, WopiTokenMapper $tokenMapper, WopiLockMapper $lockMapper,
 							WopiLockHooks $lockHooks){
 		parent::__construct($AppName, $request);
 		$this->rootFolder = $rootFolder;
@@ -61,6 +70,8 @@ class FileController extends Controller {
 		$this->lockMapper = $lockMapper;
 		$this->timeFactory = $timeFactory;
 		$this->lockHooks = $lockHooks;
+		$this->appData = $appData;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -192,11 +203,7 @@ class FileController extends Controller {
 							$result->addHeader('X-WOPI-Lock', $fLock->getValue());
 							break;
 						}
-						try {
-							$this->lockMapper->delete($fLock);
-						} catch (LockedException $e) {
-							$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
-						}
+						$this->lockMapper->delete($fLock);
 					}
 					else
 					{
@@ -226,12 +233,8 @@ class FileController extends Controller {
 					$newLock->setValue($lck);
 					$newLock->setFileId($id);
 					$newLock->setTokenId($token->getId());
-					try {
-						$this->lockMapper->insert($newLock);
-						$result->setStatus(Http::STATUS_OK);
-					} catch (LockedException $e) {
-						$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
-					}
+					$this->lockMapper->insert($newLock);
+					$result->setStatus(Http::STATUS_OK);
 				}
 				break;
 			case "GET_LOCK":
@@ -270,12 +273,8 @@ class FileController extends Controller {
 						$result->addHeader('X-WOPI-Lock', $fLock->getValue());
 						break;
 					}
-					try {
-						$this->lockMapper->delete($fLock);
-						$result->setStatus(Http::STATUS_OK);
-					} catch (LockedException $e) {
-						$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
-					}
+					$this->lockMapper->delete($fLock);
+					$result->setStatus(Http::STATUS_OK);
 				}
 				else
 				{
@@ -346,32 +345,82 @@ class FileController extends Controller {
 				$result->setStatus(Http::STATUS_NOT_IMPLEMENTED);
 				break;
 		}
-
-		if ($result->getStatus() === Http::STATUS_OK)
-		{
-			$this->lockHooks->setLockBypass(true);
-			$content = fopen('php://input', 'rb');
-			//after pull request
-			//$content=$this->request->post;
-			if (empty($content))
-				return new DataResponse([], Http::STATUS_INTERNAL_SERVER_ERROR);
-			try {
-				$file->putContent($content);
-				$result->addHeader('X-WOPI-ItemVersion', $file->getMTime());
-			} catch (GenericFileException $e) {
-				return new DataResponse([], Http::STATUS_INTERNAL_SERVER_ERROR);
-			} catch (NotPermittedException $e) {
-				return new DataResponse([], Http::STATUS_UNAUTHORIZED);
-			} catch (LockedException $e) {
-				$result->setStatus(Http::STATUS_CONFLICT);
-				$result->addHeader('X-WOPI-Lock', '');
+		if ($result->getStatus() !== Http::STATUS_OK)
+			return $result;
+		$content = fopen('php://input', 'rb');
+		//after pull request
+		//$content=$this->request->post;
+		if (empty($content)){
+			$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
+			return $result;
+		}
+		$backup = null;
+		try {
+			$appFolders = $this->appData->getDirectoryListing();
+			$folder = null;
+			foreach($appFolders as $f) {
+				if ('temp' == $f->getName()) {
+					$folder = $f;
+					break;
+				}
 			}
-			finally{
+			if (empty($folder))
+				$folder = $this->appData->newFolder('temp');
+			$backupName = $file->getName() . $this->timeFactory->getTime() . 'wopiback';
+			$backup = $folder->newFile($backupName);
+		} catch (Exception $e) {
+			$this->logger->logException($e);
+		}
+		$cleanCallback = function()use($content,$backup){
+			try {
 				if (is_resource($content))
 					fclose($content);
+				if (!empty($backup))
+					$backup->delete();
+			} catch (Exception $e) {
+				$this->logger->logException($e);
+			}
+		};
+		if (!empty($backup)){
+			try{
+				$backup->putContent($content);
+				fclose($content);
+			} catch (NotFoundException $e) {
+				$this->logger->logException($e);
+			} catch (NotPermittedException $e) {
+				$this->logger->logException($e);
+			} catch (Exception $e) {
+				$this->logger->logException($e);
+				$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
 			}
 		}
-
+		if (!empty($backup) && $result->getStatus() === Http::STATUS_OK){
+			try{
+				$content = $backup->read();
+			} catch (Exception $e) {
+				$this->logger->logException($e);
+				$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
+			}
+		}
+		if ($result->getStatus() !== Http::STATUS_OK) {
+			$cleanCallback();
+			return $result;
+		}
+		try {
+			$this->lockHooks->setLockBypass(true);
+			$file->putContent($content);
+			$result->addHeader('X-WOPI-ItemVersion', $file->getMTime());
+		} catch (GenericFileException $e) {
+			$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
+		} catch (NotPermittedException $e) {
+			$result->setStatus(Http::STATUS_UNAUTHORIZED);
+		} catch (LockedException $e) {
+			$result->setStatus(Http::STATUS_CONFLICT);
+			$result->addHeader('X-WOPI-Lock', '');
+		}
+		finally{
+			$cleanCallback();
+		}
 		return $result;
 	}
 }

@@ -6,13 +6,20 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Db\QBMapper;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 class WopiTokenMapper extends QBMapper {
 
-	public function __construct(IDBConnection $db) {
+	/**
+	 * @var ITimeFactory
+	 */
+	private $timeFactory;
+
+	public function __construct(IDBConnection $db, ITimeFactory $timeFactory) {
 		parent::__construct($db, 'wopi_tokens');
+		$this->timeFactory = $timeFactory;
 	}
 
 	/**
@@ -33,16 +40,12 @@ class WopiTokenMapper extends QBMapper {
 	}
 
 
-	public function findOld($validBy, $limit=null, $offset=null) {
+	public function deleteOld() {
+		$validBy = $this->timeFactory->getTime();
 		$qb = $this->db->getQueryBuilder();
-
-		$qb->select('*')
-			->from('wopi_tokens')
+		$qb->delete('wopi_tokens')
 			->where($qb->expr()->lt('valid_by', $qb->createNamedParameter($validBy, IQueryBuilder::PARAM_INT)))
-			->setMaxResults($limit)
-			->setFirstResult($offset);
-
-		return $this->findEntities($qb);
+			->execute();
 	}
 
 

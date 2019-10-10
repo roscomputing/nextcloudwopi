@@ -2,13 +2,16 @@
 
 namespace OCA\Wopi\Hooks;
 
-use OCA\Wopi\Common\Utilities;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Files\File;
 use OCA\Wopi\Db\WopiLockMapper;
+use OCP\Files\InvalidPathException;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
+use OCP\Files\NotFoundException;
+use OCP\ILogger;
 use OCP\Lock\ILockingProvider;
+use OCP\Lock\LockedException;
 
 class WopiLockHooks {
 
@@ -26,17 +29,25 @@ class WopiLockHooks {
 	 * @var bool
 	 */
 	private $lockBypass;
+	/**
+	 * @var ILogger
+	 */
+	private $logger;
 
-	public function __construct(IRootFolder $rootFolder, ITimeFactory $timeFactory, WopiLockMapper $lockMapper) {
+	public function __construct(IRootFolder $rootFolder, ITimeFactory $timeFactory, ILogger $logger, WopiLockMapper $lockMapper) {
 		$this->rootFolder = $rootFolder;
 		$this->lockMapper = $lockMapper;
 		$this->timeFactory = $timeFactory;
+		$this->logger = $logger;
 	}
 
 	public function register() {
-		$lockBypass = $this->lockBypass;
-		$callback = function (Node $node) use (&$lockBypass) {
-			if ($node instanceof File) {
+		$this->rootFolder->listen('\OC\Files', 'preWrite', [$this, 'preWrite']);
+	}
+
+	public function preWrite(Node $node) {
+		if ($node instanceof File) {
+			try {
 				$lock = $this->lockMapper->find($node->getId());
 				if (empty($lock))
 					return;
@@ -45,25 +56,15 @@ class WopiLockHooks {
 					$this->lockMapper->delete($lock);
 					return;
 				}
-				if (!$lockBypass)
+				if (!$this->lockBypass)
 					$node->lock(ILockingProvider::LOCK_SHARED);
+			} catch (InvalidPathException $e) {
+				$this->logger->logException($e);
+			} catch (NotFoundException $e) {
+				$this->logger->debug('not a file');
+			} catch (LockedException $e) {
+				$this->logger->logException($e);
 			}
-		};
-		$this->rootFolder->listen('\OC\Files', 'preWrite', [$this, 'preWrite']);
-	}
-
-	public function preWrite(Node $node) {
-		if ($node instanceof File) {
-			$lock = $this->lockMapper->find($node->getId());
-			if (empty($lock))
-				return;
-			if ($lock->getValidBy() < $this->timeFactory->getTime())
-			{
-				$this->lockMapper->delete($lock);
-				return;
-			}
-			if (!$this->lockBypass)
-				$node->lock(ILockingProvider::LOCK_SHARED);
 		}
 	}
 
