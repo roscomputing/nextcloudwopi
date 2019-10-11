@@ -58,13 +58,17 @@ class PageController extends Controller {
 		$token = new WopiToken();
 		$token->setId(Utilities::getGuid());
 		$token->setUserId($this->userId);
-		$token->setValidBy($this->timeFactory->getTime()  + (60*30));
+		$token->setValidBy($this->timeFactory->getTime()  + (60*60*5));
 		$token->setValue(Utilities::generateRandomString(64));
 		$token->setFileId($id);
 		$this->tokenMapper->insert($token);
 		$serverUrl = rtrim($this->config->getAppValue('wopi', 'serverUrl'), "/");
 		$url = $serverUrl . '/we/wordeditorframe.aspx?WOPISrc=' . $srcurl;
-		$response = new TemplateResponse('wopi', 'editor',array('url' => $url, 'token' => $token->getValue()));  // templates/editor.php
+		$response = new TemplateResponse('wopi', 'editor',
+			array('url' => $url,
+				'token' => $token->getValue(),
+				'token_ttl' => $token->getValidBy() * 1000
+			));  // templates/editor.php
 		$response->addHeader('Cache-Control', 'no-cache, no-store');
 		$response->addHeader('Expires', '-1');
 		$response->addHeader('Pragma', 'no-cache');

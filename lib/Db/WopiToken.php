@@ -11,6 +11,7 @@ use OCP\AppFramework\Db\Entity;
  * @method setFileId($id)
  * @method getValue()
  * @method getUserId()
+ * @method getValidBy()
  */
 class WopiToken extends Entity {
 
