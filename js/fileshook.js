@@ -1,11 +1,21 @@
 $(function(){
     var plugin = {
+        extensions:null,
         attach: function(fileList){
-            fileList.$fileList.on('click','td.filename>a.name', _.bind(this._onClickFile, fileList));
+            var that = this;
+            $.ajax({
+                method: "GET",
+                url: OC.generateUrl('/apps/wopi/getdiscovery'),
+            }).done(function(data) {
+                that.extensions = data.extensions + ',';
+                if (that.extensions && that.extensions.length)
+                    fileList.$fileList.on('click','td.filename>a.name', that.extensions, _.bind(that._onClickFile, fileList));
+            });
         },
         _onClickFile: function(event){
             var $target = $(event.target);
-            if ($target.closest('tr').find('.extension').text() == ".docx"){
+            var ext = $target.closest('tr').find('.extension').text();
+            if (ext && ext.length > 0 && event.data.indexOf(ext.substring(1) + ',') !== -1){
                 event.preventDefault();
                 var newForm = jQuery('<form>', {
                     'action': OC.generateUrl('/apps/wopi/editor'),

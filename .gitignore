@@ -1,1 +1,9 @@
 /.project
+.idea
+*.iml
+/vendor/
+/build/
+node_modules/
+
+/composer*/*
+!/composer/composer.*

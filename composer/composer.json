@@ -1,0 +1,29 @@
+{
+    "name": "Wopi",
+    "description": "Microsoft office online integration",
+    "type": "project",
+    "license": "AGPL",
+    "authors": [
+        {
+            "name": "Klonni"
+        }
+    ],
+    "config" : {
+        "vendor-dir": ".",
+        "optimize-autoloader": true,
+        "classmap-authoritative": true,
+        "autoloader-suffix": "wopi"
+    },
+    "autoload" : {
+        "psr-4": {
+            "OCA\\Wopi\\": "../lib/"
+        }
+    },
+    "require": {
+        "symfony/http-client": "^4.3",
+        "jms/serializer": "^3.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.4"
+    }
+}
