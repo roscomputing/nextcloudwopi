@@ -33,9 +33,14 @@ The archive is then located in build/artifacts/appstore.
 
 ## Installation
 
-Build app then place unzipped archive in in **nextcloud/apps/**.
+Build app then place unzipped archive in **nextcloud/apps/**.
 
 ## Settings
 
 Application settings are in the additional section.
 * Office server url - root url of office online server
+
+## Network configuration
+
+The office server must have access to the nextcloud server at the same 
+address at which the user accesses the nextcloud server.
