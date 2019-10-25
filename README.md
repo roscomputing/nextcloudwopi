@@ -31,6 +31,11 @@ This requires the following things to be present:
 The make command will install or update Composer dependencies.
 The archive is then located in build/artifacts/appstore.
 
-##Installation
+## Installation
 
 Build app then place unzipped archive in in **nextcloud/apps/**.
+
+## Settings
+
+Application settings are in the additional section.
+* Office server url - root url of office online server
