@@ -55,7 +55,7 @@ all: build
 # is present, the npm step is skipped
 .PHONY: build
 build:
-ifneq (,$(wildcard $(CURDIR)/composer.json))
+ifneq (,$(wildcard $(CURDIR)/composer/composer.json))
 	make composer
 endif
 ifneq (,$(wildcard $(CURDIR)/package.json))
