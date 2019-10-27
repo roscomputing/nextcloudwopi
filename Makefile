@@ -65,21 +65,29 @@ ifneq (,$(wildcard $(CURDIR)/js/package.json))
 	make npm
 endif
 
-# Installs and updates the composer dependencies. If composer is not installed
-# a copy is fetched from the web
-.PHONY: composer
-composer:
+.PHONY: composerinstall
+composerinstall:
 ifeq (, $(composer))
 	@echo "No composer command available, downloading a copy from the web"
 	mkdir -p $(build_tools_directory)
 	curl -sS https://getcomposer.org/installer | php
 	mv composer.phar $(build_tools_directory)
-	php $(build_tools_directory)/composer.phar install --prefer-dist
-	php $(build_tools_directory)/composer.phar update --prefer-dist
-else
-	composer install --prefer-dist
-	composer update --prefer-dist
+	composer='php $(build_tools_directory)/composer.phar'
 endif
+
+# Installs and updates the composer dependencies. If composer is not installed
+# a copy is fetched from the web
+.PHONY: composer
+composer: composerinstall
+	cd composer && \
+	composer install --prefer-dist && \
+	composer update --prefer-dist
+
+.PHONY: composernodev
+composernodev:
+	cd composer && \
+	composer install --prefer-dist --no-dev && \
+	composer update --prefer-dist --no-dev
 
 # Installs npm dependencies
 .PHONY: npm
@@ -99,6 +107,7 @@ clean:
 # npm
 .PHONY: distclean
 distclean: clean
+	rm -rf composer/*/
 	rm -rf vendor
 	rm -rf node_modules
 	rm -rf js/vendor
@@ -112,24 +121,23 @@ dist:
 
 # Builds the source package
 .PHONY: source
-source:
+source: composer
 	rm -rf $(source_build_directory)
 	mkdir -p $(source_build_directory)
-	tar cvzf $(source_package_name).tar.gz ../$(app_name) \
-	--exclude-vcs \
+	tar cvzf $(source_package_name).tar.gz --exclude-vcs \
 	--exclude="../$(app_name)/build" \
 	--exclude="../$(app_name)/js/node_modules" \
 	--exclude="../$(app_name)/node_modules" \
 	--exclude="../$(app_name)/*.log" \
 	--exclude="../$(app_name)/js/*.log" \
+	../$(app_name) \
 
 # Builds the source package for the app store, ignores php and js tests
 .PHONY: appstore
-appstore:
+appstore: distclean composernodev
 	rm -rf $(appstore_build_directory)
 	mkdir -p $(appstore_build_directory)
-	tar cvzf $(appstore_package_name).tar.gz ../$(app_name) \
-	--exclude-vcs \
+	tar cvzf $(appstore_package_name).tar.gz --exclude-vcs \
 	--exclude="../$(app_name)/build" \
 	--exclude="../$(app_name)/tests" \
 	--exclude="../$(app_name)/Makefile" \
@@ -150,6 +158,7 @@ appstore:
 	--exclude="../$(app_name)/protractor\.*" \
 	--exclude="../$(app_name)/.*" \
 	--exclude="../$(app_name)/js/.*" \
+	../$(app_name) \
 
 .PHONY: test
 test: composer
