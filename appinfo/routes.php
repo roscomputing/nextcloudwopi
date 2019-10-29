@@ -10,7 +10,7 @@
 return [
     'routes' => [
 	   ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
-       ['name' => 'page#editor', 'url' => '/editor', 'verb' => 'POST'],
+       ['name' => 'page#editor', 'url' => '/editor', 'verb' => 'GET'],
 		['name' => 'page#get_discovery', 'url' => '/getdiscovery', 'verb' => 'GET'],
        ['name' => 'file#check_file_info', 'url' => '/files/{id}', 'verb' => 'GET'],
 		['name' => 'file#lock', 'url' => '/files/{id}', 'verb' => 'POST'],

@@ -17,20 +17,7 @@ $(function(){
             var ext = $target.closest('tr').find('.extension').text();
             if (ext && ext.length > 0 && event.data.indexOf(ext.substring(1) + ',') !== -1){
                 event.preventDefault();
-                var newForm = jQuery('<form>', {
-                    'action': OC.generateUrl('/apps/wopi/editor'),
-                    'target': '_blank',
-                    'method': 'post'
-                }).append(jQuery('<input>', {
-                    'name': 'requesttoken',
-                    'value': OC.requestToken,
-                    'type': 'hidden'
-                })).append(jQuery('<input>', {
-                    'name': 'id',
-                    'value': $target.closest("tr").attr("data-id"),
-                    'type': 'hidden'
-                })).hide().appendTo('body');
-                newForm.submit();
+                window.open(OC.generateUrl('/apps/wopi/editor') + '?id=' + $target.closest("tr").attr("data-id"), '_blank');
             }
         }
     };

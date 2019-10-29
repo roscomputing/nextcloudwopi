@@ -68,6 +68,7 @@ class PageController extends Controller {
 	}
 	/**
 	 * @NoAdminRequired
+	 * @NoCSRFRequired
 	 */
 	public function editor($id) {
 		$this->tokenMapper->deleteOld();
