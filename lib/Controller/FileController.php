@@ -371,20 +371,11 @@ class FileController extends Controller {
 		} catch (Exception $e) {
 			$this->logger->logException($e);
 		}
-		$cleanCallback = function()use($content,$backup){
-			try {
-				if (is_resource($content))
-					fclose($content);
-				if (!empty($backup))
-					$backup->delete();
-			} catch (Exception $e) {
-				$this->logger->logException($e);
-			}
-		};
 		if (!empty($backup)){
 			try{
 				$backup->putContent($content);
-				fclose($content);
+				if (is_resource($content))
+					fclose($content);
 			} catch (NotFoundException $e) {
 				$this->logger->logException($e);
 			} catch (NotPermittedException $e) {
@@ -402,6 +393,16 @@ class FileController extends Controller {
 				$result->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
 			}
 		}
+		$cleanCallback = function()use($content,$backup){
+			try {
+				if (is_resource($content))
+					fclose($content);
+				if (!empty($backup))
+					$backup->delete();
+			} catch (Exception $e) {
+				$this->logger->logException($e);
+			}
+		};
 		if ($result->getStatus() !== Http::STATUS_OK) {
 			$cleanCallback();
 			return $result;
