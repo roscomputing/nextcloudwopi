@@ -34,8 +34,8 @@ class AdminSettings implements ISettings {
 		$result = $this->discoveryWorker->getDiscovery();
 		$parameters = [
 			'server_url' => $serverUrl,
-			'time' => new \DateTime('@' . $result->time),
-			'ttl' => new \DateTime('@' . $result->ttl),
+			'time' => !empty($result->time) ? new \DateTime('@' . $result->time) : null,
+			'ttl' => !empty($result->ttl) ? new \DateTime('@' . $result->ttl) : null,
 			'extensions' =>$result->extensions,
 			'text'=>$result->text
 		];

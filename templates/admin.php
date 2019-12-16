@@ -17,9 +17,9 @@ style('wopi', 'admin');
 		<label><?php p($l->t('Latest discovery result: ')); ?></label>
 		<span id="wopi_discovery_text"><?php p($_['text']); ?></span><br>
 		<label><?php p($l->t('Latest discovery time: ')); ?></label>
-		<span id="wopi_discovery_time"><?php p($l->l('datetime', $_['time'])); ?></span><br>
+		<span id="wopi_discovery_time"><?php empty($_['time']) ? p($l->t('never')) : p($l->l('datetime', $_['time'])); ?></span><br>
 		<label><?php p($l->t('Next discovery time: ')); ?></label>
-		<span id="wopi_discovery_ttl"><?php p($l->l('datetime', $_['ttl'])); ?></span><br>
+		<span id="wopi_discovery_ttl"><?php empty($_['ttl']) ? p($l->t('never')) : p($l->l('datetime', $_['ttl'])); ?></span><br>
 		<label><?php p($l->t('Supported file extensions: ')); ?></label>
 		<span id="wopi_discovery_extensions"><?php p($_['extensions']); ?></span><br>
 
