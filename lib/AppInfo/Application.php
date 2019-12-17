@@ -2,15 +2,11 @@
 
 namespace OCA\Wopi\AppInfo;
 
-use OCA\Files\Event\LoadAdditionalScriptsEvent;
-use OCA\Wopi\Db\WopiLockMapper;
 use OCA\Wopi\Hooks\WopiLockHooks;
-use OCA\Wopi\Listener\LoadAdditionalScripts;
 use OCP\AppFramework\App;
-use OC\AppFramework\Utility\SimpleContainer;
-use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IServerContainer;
+use OCP\Util;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class Application extends App {
 	public function __construct(array $urlParams = array()) {
@@ -62,14 +58,16 @@ class Application extends App {
 		$container = $this->getContainer();
 		$server = $container->getServer();
 
-		/** @var IEventDispatcher $dispatcher */
-		$dispatcher = $server->query(IEventDispatcher::class);
+		/** @var EventDispatcherInterface $dispatcher */
+		$dispatcher = $server->getEventDispatcher();
 
-		$this->registerSidebarScripts($dispatcher);
+		$serverUrl = $server->getConfig()->getAppValue('wopi', 'serverUrl');
+		if (strlen($serverUrl) > 0)
+		{
+			$dispatcher->addListener('OCA\Files::loadAdditionalScripts', function() {
+				Util::addScript('wopi', 'fileshook');
+			});
+		}
 		$container->query(WopiLockHooks::class)->register();
-	}
-
-	protected function registerSidebarScripts(IEventDispatcher $dispatcher) {
-		$dispatcher->addServiceListener(LoadAdditionalScriptsEvent::class, LoadAdditionalScripts::class);
 	}
 }
