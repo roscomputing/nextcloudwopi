@@ -110,7 +110,8 @@ class PageController extends Controller {
 		$response->addHeader('Expires', '-1');
 		$response->addHeader('Pragma', 'no-cache');
 		$csp = new ContentSecurityPolicy();
-		$csp->addAllowedFormActionDomain('*');
+		if (method_exists($csp,'addAllowedFormActionDomain'))
+			$csp->addAllowedFormActionDomain('*');
 		//$csp->addAllowedChildSrcDomain('*');
 		$csp->addAllowedFrameDomain('*');
 		$response->setContentSecurityPolicy($csp);
