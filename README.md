@@ -1,3 +1,5 @@
+This is the first version that is no longer being developed. The latest version, based on https://github.com/nextcloud/richdocuments, is [here](https://github.com/roscomputing/richdocuments).
+
 # Wopi
 
 This is an application for https://nextcloud.com/ that allows you 
